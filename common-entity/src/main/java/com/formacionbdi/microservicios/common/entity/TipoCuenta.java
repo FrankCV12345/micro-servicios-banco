@@ -16,6 +16,11 @@ public class TipoCuenta {
 	
 	public TipoCuenta() {
 	}
+	
+	public TipoCuenta(Long id) {
+		this.id = id;
+	}
+
 	public TipoCuenta(String nombre) {
 		this.nombre = nombre;
 	}

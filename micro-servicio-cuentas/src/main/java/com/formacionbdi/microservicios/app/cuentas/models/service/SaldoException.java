@@ -9,4 +9,9 @@ public class SaldoException extends Exception {
 	public SaldoException() {
 		super("Saldo no suficiente");
 	}
+	
+	public SaldoException(String mensaje) {
+		super(mensaje);
+	}
+	
 }

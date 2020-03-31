@@ -8,7 +8,6 @@ import javax.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.formacionbdi.microservicios.app.cuentas.repository.ClienteRepository;
 import com.formacionbdi.microservicios.app.cuentas.repository.LibreDiarioRepository;
 import com.formacionbdi.microservicios.app.cuentas.repository.ProductoRepository;
 import com.formacionbdi.microservicios.common.entity.Cliente;
@@ -30,19 +29,16 @@ public class CuentaServiceImplements implements ICuentaService {
 	private LibreDiarioRepository libroDiarioRepository;
 	
 	@Override
-	public Single<Producto> crear(Producto producto) {
+	public Single<Object> crear(Producto producto) {
 		// TODO Auto-generated method stub
 		return Single.create( (s) ->{
 			if(producto.getSaldo() == 0 || producto.getSaldo() == null || producto.getSaldo() < 100) {
-				s.onError(new EntityNotFoundException());
+				s.tryOnError(new SaldoException("Debe ingresar almenos 100 soles de saldo"));
 			}else if (producto.getSaldo() >= 100) {
-				
 				Producto pro = productoRepository.save(producto);
 				libroDiarioRepository.save(new LibroDiario("deposito", producto.getSaldo(), producto));
-				
 				s.onSuccess(pro);
 			}
-			
 		});
 	}
 
@@ -61,7 +57,7 @@ public class CuentaServiceImplements implements ICuentaService {
 	public Single<Double> retiro(Transacion transacion) {
 		// TODO Auto-generated method stub
 		return Single.create((s) -> {
-			Producto p = validaOperacion(transacion.getIdProdcuto());
+			Producto p = validaOperacion(productoRepository.findById(transacion.getIdProdcuto()));
 			if(p != null) {
 				Double saldo  =ejecutaTransaccion(transacion , this.OperacionRetiro,p);
 				if(saldo != null) {
@@ -78,7 +74,7 @@ public class CuentaServiceImplements implements ICuentaService {
 	@Override
 	public Single<Double> deposito(Transacion transacion) {
 		return Single.create((s) -> {
-			Producto p = validaOperacion(transacion.getIdProdcuto());
+			Producto p = validaOperacion(productoRepository.findById(transacion.getIdProdcuto()));
 			if(p != null) {
 				Double saldo  =ejecutaTransaccion(transacion , this.OperacionDeposito,p);
 				if(saldo != null) {
@@ -121,8 +117,7 @@ public class CuentaServiceImplements implements ICuentaService {
 	}
 	
 	//valida si la cuenta existe
-	private Producto validaOperacion(Long idProducto) {
-		Optional<Producto> p = productoRepository.findById(idProducto);
+	private Producto validaOperacion(Optional<Producto> p) {
 		if(p.isPresent()) {
 			return p.get();
 		}else {

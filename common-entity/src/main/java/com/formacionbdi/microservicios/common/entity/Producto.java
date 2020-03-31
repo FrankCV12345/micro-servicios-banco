@@ -35,6 +35,7 @@ public class Producto {
 	@PrePersist
 	private void prePersist() {
 		this.createAt = new Date();
+		this.nroCuente  ="456"+((int) Math.floor(Math.random()*1420));
 	}
 	public Producto() {
 		
@@ -51,6 +52,12 @@ public class Producto {
 	}
 	
 	
+	
+	public Producto( TipoCuenta tipoCuenta, Double saldo, Cliente cliente) {
+		this.tipoCuenta = tipoCuenta;
+		this.saldo = saldo;
+		this.cliente = cliente;
+	}
 	public Long getId() {
 		return id;
 	}

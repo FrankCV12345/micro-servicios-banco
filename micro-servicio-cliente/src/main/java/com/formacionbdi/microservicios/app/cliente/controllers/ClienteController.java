@@ -2,6 +2,10 @@ package com.formacionbdi.microservicios.app.cliente.controllers;
 
 
 
+import java.util.HashMap;
+import java.util.Map;
+
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.formacionbdi.microservicios.app.cliente.models.service.ClienteServiceImple;
+import com.formacionbdi.microservicios.app.cliente.requestModels.RequestNewClien;
 import com.formacionbdi.microservicios.common.entity.Cliente;
 
 import io.reactivex.Maybe;
@@ -26,16 +31,14 @@ public class ClienteController {
 	ClienteServiceImple clienteService;
 	
 	@GetMapping("/{id}")
-	public Maybe<ResponseEntity<?>> buscarCliente(@PathVariable Long id){
+	public Maybe<ResponseEntity<Object>> buscarCliente(@PathVariable Long id){
+		
 		return clienteService.findById(id)
-				.subscribeOn(Schedulers.io())
-				.map(c -> {
-					if(c == null) {
-						return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-					}else {
-						return ResponseEntity.status(HttpStatus.OK).body(c);
-						
-					}
+				.map(c -> ResponseEntity.status(HttpStatus.OK).body(c))
+				.onErrorReturn( e -> {
+					Map<String, Object> rpta = new HashMap<>();
+					rpta.put("message", e.getMessage());
+					return ResponseEntity.status(HttpStatus.NOT_FOUND).body(rpta);
 				});
 	}
 	
@@ -47,10 +50,16 @@ public class ClienteController {
 	}
 	
 	@PostMapping
-	public Single<ResponseEntity<?>> crearCliente(@RequestBody Cliente cliente){
+	public Single<ResponseEntity<Object>> crearCliente(@RequestBody RequestNewClien cliente){
+		
 		return clienteService.save(cliente)
 				.subscribeOn(Schedulers.io())
-				.map( c ->  ResponseEntity.status(HttpStatus.CREATED).body(c));
+				.map( c ->  ResponseEntity.status(HttpStatus.CREATED).body(c))
+				.onErrorReturn( e -> {
+					Map<String, Object> rpta = new HashMap<>();
+					rpta.put("message", e.getMessage());
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(rpta);
+				});
 	}
 	
 	
