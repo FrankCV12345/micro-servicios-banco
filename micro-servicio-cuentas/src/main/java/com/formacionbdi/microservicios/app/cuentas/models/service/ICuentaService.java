@@ -9,6 +9,6 @@ import io.reactivex.Single;
 public interface ICuentaService {
 	public Single<Object> crear(Producto produto);
 	public Single<List<Producto>> ListarProductoPorIdCliente(Long id);
-	public Single<Double> retiro(Transacion t);
-	public Single<Double> deposito(Transacion t);
+	public Single<Object> retiro(Transacion t);
+	public Single<Object> deposito(Transacion t);
 }

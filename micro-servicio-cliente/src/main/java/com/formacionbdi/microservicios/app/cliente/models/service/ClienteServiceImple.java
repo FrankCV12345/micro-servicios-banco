@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.formacionbdi.microservicios.app.cliente.repository.IRepositoryCliente;
 import com.formacionbdi.microservicios.app.cliente.requestModels.RequestNewClien;
+import com.formacionbdi.microservicios.app.cuentas.excepciones.BadRequestException;
 import com.formacionbdi.microservicios.common.entity.Cliente;
 import com.formacionbdi.microservicios.common.entity.Producto;
 
@@ -31,6 +32,7 @@ public class ClienteServiceImple implements IClienteService {
 	private IRepositoryCliente clienteRepostory;
 	
 	UtilitarioRetrofit WSCuentas =  new UtilitarioRetrofit(urlServicio);
+	
 	ICuentasService cuentaService = WSCuentas
 			.getRetrofit()
 			.create(ICuentasService.class);
@@ -44,6 +46,7 @@ public class ClienteServiceImple implements IClienteService {
 				Producto producto = cliente.getProducto();
 				producto.setCliente(new Cliente(clientenew.getId()));
 				
+				//llamo a mi servicio de cuentas
 				Call<Producto> call = cuentaService.crearCuenta(producto);
 				
 				call.enqueue(new Callback<Producto>() {
@@ -55,18 +58,25 @@ public class ClienteServiceImple implements IClienteService {
 							String responseBodyOnError;
 							try {
 								responseBodyOnError = response.errorBody().string();
-								JSONObject j = new JSONObject(responseBodyOnError);
-								s.tryOnError(new Exception(j.getString("message")));
-								clienteRepostory.delete(clientenew);
 							} catch (IOException e) {
 								responseBodyOnError= "error al formatear json";
 							}
+							
+							
+							JSONObject j = new JSONObject(responseBodyOnError);
+							//Por mejorar
+							if(response.code() == 400) {
+								clienteRepostory.delete(clientenew);
+								s.tryOnError(new BadRequestException(j.getString("message")));
+							}else {
+								s.tryOnError(new BadRequestException(j.getString("message")));
+							} 
 							
 						}
 					}
 					@Override
 					public void onFailure(Call<Producto> call, Throwable t) {
-						s.tryOnError(new Exception("Error generico , fallo la peticion"));
+						s.tryOnError(new Exception("Error interno"));
 					}
 				});
 		});
@@ -88,11 +98,12 @@ public class ClienteServiceImple implements IClienteService {
 		return Single.create( s -> {
 			
 			final Call<List<Producto>> call = cuentaService.cuentasDeCliente(idCliente);
+			
 			call.enqueue(new Callback<List<Producto>>() {
 				@Override
 				public void onResponse(Call<List<Producto>> call, Response<List<Producto>> response) {
 					if(!response.isSuccessful()) {
-						s.tryOnError(new Exception("Error generico"));
+						s.tryOnError(new EntityNotFoundException("Recurso no encontrado"));
 					}else {
 						s.onSuccess( response.body());
 					}

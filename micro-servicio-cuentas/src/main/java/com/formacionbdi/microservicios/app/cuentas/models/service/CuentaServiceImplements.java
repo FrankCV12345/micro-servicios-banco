@@ -13,8 +13,9 @@ import com.formacionbdi.microservicios.app.cuentas.repository.ProductoRepository
 import com.formacionbdi.microservicios.common.entity.Cliente;
 import com.formacionbdi.microservicios.common.entity.LibroDiario;
 import com.formacionbdi.microservicios.common.entity.Producto;
-
+import com.formacionbdi.microservicios.app.cuentas.excepciones.BadRequestException;
 import io.reactivex.Single;
+import io.reactivex.SingleEmitter;
 
 @Service
 public class CuentaServiceImplements implements ICuentaService {
@@ -33,7 +34,7 @@ public class CuentaServiceImplements implements ICuentaService {
 		// TODO Auto-generated method stub
 		return Single.create( (s) ->{
 			if(producto.getSaldo() == 0 || producto.getSaldo() == null || producto.getSaldo() < 100) {
-				s.tryOnError(new SaldoException("Debe ingresar almenos 100 soles de saldo"));
+				s.tryOnError(new BadRequestException("Debe ingresar almenos 100 soles de saldo"));
 			}else if (producto.getSaldo() >= 100) {
 				Producto pro = productoRepository.save(producto);
 				libroDiarioRepository.save(new LibroDiario("deposito", producto.getSaldo(), producto));
@@ -46,15 +47,13 @@ public class CuentaServiceImplements implements ICuentaService {
 	public Single<List<Producto>> ListarProductoPorIdCliente(Long id) {
 		// TODO Auto-generated method stub
 		return Single.create((s) ->{
-			Cliente c = new Cliente(id);
-			List<Producto> productos =  productoRepository.findByCliente(c);
-				s.onSuccess(productos);
-		
+			List<Producto> productos =  productoRepository.findByCliente(new Cliente(id));
+			s.onSuccess(productos);
 		});
 	}
 
 	@Override
-	public Single<Double> retiro(Transacion transacion) {
+	public Single<Object> retiro(Transacion transacion) {
 		// TODO Auto-generated method stub
 		return Single.create((s) -> {
 			Producto p = validaOperacion(productoRepository.findById(transacion.getIdProdcuto()));
@@ -63,16 +62,16 @@ public class CuentaServiceImplements implements ICuentaService {
 				if(saldo != null) {
 					s.onSuccess(saldo);	
 				}else {
-					s.onError(new SaldoException());
+					s.onError(new BadRequestException("Saldo insuficiente"));
 				}
 			}else {
-				s.onError( new EntityNotFoundException());
+				s.onError( new EntityNotFoundException("no se encontro el cliente"));
 			}
 		});
 	}
 
 	@Override
-	public Single<Double> deposito(Transacion transacion) {
+	public Single<Object> deposito(Transacion transacion) {
 		return Single.create((s) -> {
 			Producto p = validaOperacion(productoRepository.findById(transacion.getIdProdcuto()));
 			if(p != null) {
@@ -80,14 +79,14 @@ public class CuentaServiceImplements implements ICuentaService {
 				if(saldo != null) {
 					s.onSuccess(saldo);	
 				}else {
-					s.onError( new SaldoException());
+					s.onError( new BadRequestException("No se ingreso un tipo de operacion ingrese :"+this.OperacionDeposito + " o " + this.OperacionRetiro));
 				}
 			}else {
-				s.onError( new EntityNotFoundException());
+				s.onError( new EntityNotFoundException("cuenta no encontrada"));
 			}
-			
 		});
 	}
+	
 	
 	//retorna null si al hacer retiro no hay saldo suficiente o si entra al default del case
 	private Double ejecutaTransaccion(Transacion t ,String tipoOperacion,Producto p ) {
